@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NVIDIA Track</title>
+
+<style>
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+:root{
+    --bg:#08090b;
+    --panel:#0d0f12;
+    --panel2:#101216;
+    --border:#25282e;
+    --border2:#30343b;
+    --text:#e7e9ed;
+    --muted:#777d87;
+    --green:#00ff66;
+    --red:#ff3355;
+    --accent:#00ff66;
+    --wallpaper:none;
+}
+
+*{box-sizing:border-box;}
+
+html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--text);font-family:"JetBrains Mono",monospace;overflow:hidden;}
+body{font-size:12px;background-image:var(--wallpaper);background-size:cover;background-position:center;background-attachment:fixed;}
+
+button,input,select{font:inherit;}
+button{color:inherit;}
+
+.app{width:100%;height:100vh;display:flex;flex-direction:column;position:relative;background:rgba(8,9,11,.94);}
+
+.header{height:48px;min-height:48px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:#090a0c;position:relative;z-index:20;}
+.logo{width:215px;height:100%;display:flex;align-items:center;padding:0 14px;border-right:1px solid var(--border);font-weight:700;letter-spacing:.5px;}
+.logo-mark{width:8px;height:8px;background:var(--accent);margin-right:9px;}
+.logo-name{color:#fff;}
+.logo-name span{color:var(--accent);}
+
+.header-main{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:0 14px;}
+.search-wrap{width:320px;position:relative;}
+.search{width:100%;height:30px;background:#0d0f12;border:1px solid var(--border2);color:var(--text);outline:none;padding:0 48px 0 11px;}
+.search:focus{border-color:#4b515a;}
+.search::placeholder{color:#555b64;}
+.search-key{position:absolute;right:7px;top:7px;color:#5e646e;font-size:10px;border:1px solid var(--border);padding:1px 4px;}
+
+.header-status{display:flex;align-items:center;gap:7px;white-space:nowrap;}
+.status-dot{width:6px;height:6px;background:var(--accent);}
+.online{color:var(--accent);}
+.header-spacer{flex:1;}
+.market-pulse{display:flex;gap:6px;align-items:center;color:var(--muted);}
+.market-pulse strong{color:var(--accent);font-weight:600;}
+.clock{min-width:82px;text-align:right;color:#aeb3bb;}
+
+.settings-button{width:31px;height:31px;border:1px solid var(--border);background:#0d0f12;color:#737983;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-left:4px;transition:.15s;}
+.settings-button:hover{color:var(--accent);border-color:var(--accent);}
+.settings-button.active{color:var(--accent);border-color:var(--accent);}
+.settings-button svg{width:15px;height:15px;}
+
+.layout{flex:1;min-height:0;display:flex;}
+
+aside{width:215px;min-width:215px;border-right:1px solid var(--border);background:#0a0b0d;padding:14px 12px;overflow:hidden;}
+.side-section{margin-bottom:18px;}
+.side-title{color:#5d636d;font-size:10px;letter-spacing:1px;margin-bottom:8px;}
+.side-grid{display:grid;gap:4px;}
+.market-grid{grid-template-columns:repeat(4,1fr);}
+.time-grid{grid-template-columns:repeat(3,1fr);}
+.side-button{height:27px;border:1px solid var(--border);background:#0d0f12;color:#777d87;cursor:pointer;padding:0;font-size:10px;}
+.side-button:hover{border-color:#464b53;color:#d8dbe0;}
+.side-button.active{border-color:var(--accent);color:var(--accent);}
+.compare-row{display:flex;gap:4px;}
+.compare-row .side-button{flex:1;}
+
+.product-list{display:flex;flex-direction:column;gap:2px;max-height:430px;overflow:hidden;}
+.product-item{min-height:40px;border:1px solid transparent;background:transparent;padding:6px 7px;cursor:pointer;text-align:left;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
+.product-item:hover{background:#101216;border-color:var(--border);}
+.product-item.active{background:#111419;border-color:#3b4149;}
+.product-name{color:#cfd3d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;}
+.product-item.active .product-name{color:#fff;}
+.product-price{color:#60666f;margin-top:4px;font-size:9px;}
+.product-item.active .product-price{color:var(--accent);}
+.no-match{padding:12px 5px;color:var(--red);font-size:10px;line-height:1.5;}
+.product-count{color:#4f555e;font-size:9px;margin-top:7px;}
+
+.content{flex:1;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;padding:18px;scrollbar-width:thin;scrollbar-color:#30343b transparent;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#30343b;}
+::-webkit-scrollbar-thumb:hover{background:#454a53;}
+
+.content-inner{max-width:1500px;margin:0 auto;}
+
+.topline{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;}
+.product-heading{min-width:0;}
+.eyebrow{color:#555b64;font-size:9px;letter-spacing:1px;margin-bottom:6px;}
+h1{margin:0;font-size:23px;line-height:1.1;font-weight:600;letter-spacing:-.5px;}
+.subtitle{margin-top:7px;color:#6f757e;font-size:10px;}
+.data-state{text-align:right;color:#5f656e;font-size:9px;white-space:nowrap;}
+.data-state strong{color:var(--accent);font-weight:500;}
+
+.metrics{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:14px;}
+.metric{min-height:78px;border:1px solid var(--border);background:var(--panel);padding:10px;}
+.metric-label{color:#5d636c;font-size:9px;margin-bottom:10px;}
+.metric-value{color:#e5e7eb;font-size:14px;font-weight:600;white-space:nowrap;}
+.metric-value.green{color:var(--accent);}
+.metric-value.red{color:var(--red);}
+
+.chart-panel{border:1px solid var(--border);background:var(--panel);margin-bottom:14px;}
+.panel-header{height:39px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding:0 11px;}
+.panel-title{color:#d8dbe0;font-size:10px;letter-spacing:.6px;}
+.panel-meta{color:#555b64;font-size:9px;}
+.chart{height:280px;position:relative;overflow:hidden;}
+.chart-grid{position:absolute;inset:0;}
+.chart-grid svg{width:100%;height:100%;display:block;}
+.chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#4e545d;font-size:10px;letter-spacing:.5px;}
+.chart-line{fill:none;stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke;}
+.chart-area{fill:var(--accent);opacity:.045;}
+.chart-point{fill:var(--accent);}
+.chart-axis{position:absolute;left:11px;right:11px;bottom:7px;display:flex;justify-content:space-between;color:#454a52;font-size:8px;}
+
+.lower-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:14px;}
+.table-panel,.info-panel{border:1px solid var(--border);background:var(--panel);}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:650px;}
+th{text-align:left;height:35px;padding:0 10px;color:#555b64;font-size:9px;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{height:39px;padding:0 10px;color:#b8bdc5;border-bottom:1px solid #191c21;font-size:10px;white-space:nowrap;}
+tr:last-child td{border-bottom:0;}
+.retailer{color:#e0e3e7;}
+.price{color:var(--accent);}
+.stock{color:#6d737d;}
+.stock.ok{color:var(--accent);}
+.stock.out{color:var(--red);}
+
+.info-body{padding:12px;}
+.spec-row{display:flex;justify-content:space-between;gap:12px;min-height:32px;border-bottom:1px solid #191c21;align-items:center;}
+.spec-row:last-child{border-bottom:0;}
+.spec-label{color:#5f656e;font-size:9px;}
+.spec-value{color:#d2d5da;text-align:right;font-size:10px;}
+.refresh-button{width:100%;height:34px;border:1px solid #3b4149;background:#111419;color:#bfc4ca;cursor:pointer;margin-top:12px;}
+.refresh-button:hover{border-color:var(--accent);color:var(--accent);}
+.refresh-button:disabled{opacity:.5;cursor:default;}
+
+.footer-ticker{height:31px;min-height:31px;border-top:1px solid var(--border);background:#090a0c;display:flex;align-items:center;overflow:hidden;white-space:nowrap;}
+.ticker-label{height:100%;display:flex;align-items:center;padding:0 11px;border-right:1px solid var(--border);color:#555b64;font-size:9px;}
+.ticker-content{display:flex;gap:24px;padding:0 12px;color:#666c75;font-size:9px;}
+.ticker-content span{color:#858b94;}
+.ticker-content strong{color:var(--accent);font-weight:500;}
+
+/* SETTINGS */
+
+.settings-page{position:fixed;inset:48px 0 31px 0;background:rgba(8,9,11,.98);z-index:15;display:none;overflow:auto;}
+.settings-page.open{display:block;}
+.settings-container{width:min(1100px,calc(100% - 36px));margin:0 auto;padding:28px 0 50px;}
+.settings-heading{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:18px;}
+.settings-eyebrow{color:#555b64;font-size:9px;letter-spacing:1px;margin-bottom:7px;}
+.settings-title{font-size:24px;font-weight:600;margin:0;}
+.settings-description{color:#686e77;font-size:10px;margin-top:7px;}
+.settings-grid{display:grid;grid-template-columns:220px minmax(0,1fr);gap:14px;}
+.settings-nav{border:1px solid var(--border);background:var(--panel);height:max-content;}
+.settings-nav button{width:100%;height:42px;border:0;border-bottom:1px solid #191c21;background:transparent;color:#676d76;text-align:left;padding:0 12px;cursor:pointer;font-size:10px;}
+.settings-nav button:last-child{border-bottom:0;}
+.settings-nav button:hover,.settings-nav button.active{color:var(--accent);background:#111419;}
+.settings-section{display:none;border:1px solid var(--border);background:var(--panel);}
+.settings-section.active{display:block;}
+.settings-section-header{padding:15px;border-bottom:1px solid var(--border);}
+.settings-section-title{color:#e1e4e8;font-size:11px;letter-spacing:.4px;}
+.settings-section-subtitle{color:#5e646d;font-size:9px;margin-top:5px;line-height:1.6;}
+.settings-body{padding:15px;}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:54px;border-bottom:1px solid #191c21;}
+.setting-row:last-child{border-bottom:0;}
+.setting-label{color:#c8ccd2;font-size:10px;}
+.setting-help{color:#5e646d;font-size:9px;margin-top:4px;line-height:1.5;}
+.setting-control{min-width:230px;display:flex;justify-content:flex-end;}
+.setting-input,.setting-select{width:230px;height:32px;background:#090b0e;border:1px solid var(--border2);color:#dce0e5;outline:none;padding:0 9px;}
+.setting-input:focus,.setting-select:focus{border-color:var(--accent);}
+.setting-button{height:32px;padding:0 12px;border:1px solid var(--border2);background:#111419;color:#aeb3bb;cursor:pointer;font-size:10px;}
+.setting-button:hover{border-color:var(--accent);color:var(--accent);}
+.setting-button.primary{border-color:var(--accent);color:var(--accent);}
+.setting-button.danger{color:var(--red);}
+.setting-button.danger:hover{border-color:var(--red);}
+
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:15px;}
+.theme-card{min-height:72px;border:1px solid var(--border);background:#090b0e;padding:9px;cursor:pointer;}
+.theme-card:hover{border-color:#555b64;}
+.theme-card.active{border-color:var(--accent);}
+.theme-preview{height:28px;margin-bottom:8px;border:1px solid #25282e;}
+.theme-name{font-size:9px;color:#9ca2ab;}
+
+.color-row{display:flex;align-items:center;gap:8px;}
+.color-input{width:42px;height:32px;border:1px solid var(--border2);background:#090b0e;padding:2px;cursor:pointer;}
+
+.history-list{max-height:360px;overflow:auto;border:1px solid #191c21;}
+.history-row{display:grid;grid-template-columns:1fr 140px 150px 70px;min-height:38px;align-items:center;border-bottom:1px solid #191c21;padding:0 10px;font-size:9px;}
+.history-row:last-child{border-bottom:0;}
+.history-row.header{color:#555b64;background:#0a0c0f;}
+.history-price{color:var(--accent);}
+.empty-history{padding:25px;text-align:center;color:#4e545d;font-size:9px;}
+
+.add-data-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-field{display:flex;flex-direction:column;gap:6px;}
+.form-field.full{grid-column:1 / -1;}
+.form-label{color:#656b74;font-size:9px;}
+.form-actions{margin-top:14px;display:flex;justify-content:flex-end;gap:7px;}
+
+.collector-status{border:1px solid var(--border);background:#090b0e;padding:12px;margin-bottom:12px;}
+.collector-status-top{display:flex;justify-content:space-between;align-items:center;}
+.collector-state{color:var(--muted);font-size:9px;}
+.collector-state.ready{color:var(--accent);}
+.collector-state.error{color:var(--red);}
+.collector-detail{margin-top:8px;color:#555b64;font-size:9px;line-height:1.6;}
+.badge{display:inline-flex;align-items:center;height:20px;padding:0 7px;border:1px solid var(--border2);color:#777d87;font-size:8px;}
+.badge.green{color:var(--accent);border-color:var(--accent);}
+.wallpaper-preview{height:110px;border:1px solid var(--border);margin-top:10px;background:#08090b;background-size:cover;background-position:center;}
+.settings-footer{margin-top:14px;color:#444a53;font-size:8px;text-align:right;}
+
+@media(max-width:1100px){
+    .metrics{grid-template-columns:repeat(4,1fr);}
+    .lower-grid{grid-template-columns:1fr;}
+    .search-wrap{width:240px;}
+    .settings-grid{grid-template-columns:1fr;}
+    .settings-nav{display:grid;grid-template-columns:repeat(4,1fr);}
+    .settings-nav button{border-right:1px solid #191c21;border-bottom:0;}
+}
+
+@media(max-width:760px){
+    aside{width:185px;min-width:185px;}
+    .logo{width:185px;}
+    .header-status,.market-pulse{display:none;}
+    .metrics{grid-template-columns:repeat(2,1fr);}
+    .content{padding:12px;}
+    .settings-container{width:calc(100% - 24px);}
+    .settings-nav{grid-template-columns:repeat(2,1fr);}
+    .setting-row{align-items:flex-start;flex-direction:column;justify-content:center;gap:8px;padding:10px 0;}
+    .setting-control{width:100%;min-width:0;justify-content:flex-start;}
+    .setting-input,.setting-select{width:100%;}
+    .add-data-grid{grid-template-columns:1fr;}
+    .form-field.full{grid-column:auto;}
+    .history-row{grid-template-columns:1fr 100px;gap:5px;padding:8px;}
+    .history-row > :nth-child(3),.history-row > :nth-child(4){display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="header">
+    <div class="logo">
+        <div class="logo-mark"></div>
+        <div class="logo-name">NVIDIA <span>Track</span></div>
+    </div>
+
+    <div class="header-main">
+        <div class="search-wrap">
+            <input id="search" class="search" type="text" placeholder="Search NVIDIA GPU..." autocomplete="off">
+            <div class="search-key">CTRL K</div>
+        </div>
+
+        <div class="header-status">
+            <div class="status-dot"></div>
+            <div class="online">ONLINE</div>
+            <div id="latency">— ms</div>
+        </div>
+
+        <div class="header-spacer"></div>
+
+        <div class="market-pulse">
+            <span>MARKET</span>
+            <strong id="marketPulse">LIVE</strong>
+        </div>
+
+        <div id="clock" class="clock">--:--:--</div>
+
+        <button id="settingsButton" class="settings-button" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </div>
+</header>
+
+<div class="layout">
+<aside>
+    <section class="side-section">
+        <div class="side-title">MARKET</div>
+        <div class="side-grid market-grid">
+            <button class="side-button active" data-currency="IDR">IDR</button>
+            <button class="side-button" data-currency="USD">USD</button>
+            <button class="side-button" data-currency="EUR">EUR</button>
+            <button class="side-button" data-currency="JPY">JPY</button>
+        </div>
+    </section>
+
+    <section class="side-section">
+        <div class="side-title">TIMEFRAME</div>
+        <div class="side-grid time-grid">
+            <button class="side-button active" data-timeframe="1H">1H</button>
+            <button class="side-button" data-timeframe="24H">24H</button>
+            <button class="side-button" data-timeframe="7D">7D</button>
+            <button class="side-button" data-timeframe="1M">1M</button>
+            <button class="side-button" data-timeframe="1Y">1Y</button>
+            <button class="side-button" data-timeframe="ALL">ALL</button>
+        </div>
+    </section>
+
+    <section class="side-section">
+        <div class="side-title">GPU COMPARISON</div>
+        <div class="compare-row">
+            <button class="side-button active">ON</button>
+            <button class="side-button">OFF</button>
+        </div>
+    </section>
+
+    <section class="side-section">
+        <div class="side-title">NVIDIA GEFORCE</div>
+        <div id="productList" class="product-list"></div>
+        <div id="productCount" class="product-count">0 PRODUCTS</div>
+    </section>
+</aside>
+
+<main class="content">
+<div class="content-inner">
+
+    <div class="topline">
+        <div class="product-heading">
+            <div class="eyebrow">NVIDIA GEFORCE / MARKET INTELLIGENCE</div>
+            <h1 id="productName">Loading...</h1>
+            <div id="productSubtitle" class="subtitle">Loading product data</div>
+        </div>
+
+        <div class="data-state">
+            DATA STATUS<br>
+            <strong id="dataStatus">INITIALIZING</strong>
+        </div>
+    </div>
+
+    <section class="metrics">
+        <div class="metric"><div class="metric-label">CURRENT</div><div id="metricCurrent" class="metric-value">NO DATA</div></div>
+        <div class="metric"><div class="metric-label">LOWEST EVER</div><div id="metricLowest" class="metric-value">NO DATA</div></div>
+        <div class="metric"><div class="metric-label">LAUNCH MSRP</div><div id="metricMsrp" class="metric-value">NO DATA</div></div>
+        <div class="metric"><div class="metric-label">24H</div><div id="metric24h" class="metric-value">—</div></div>
+        <div class="metric"><div class="metric-label">7D</div><div id="metric7d" class="metric-value">—</div></div>
+        <div class="metric"><div class="metric-label">30D</div><div id="metric30d" class="metric-value">—</div></div>
+        <div class="metric"><div class="metric-label">VRAM</div><div id="metricVram" class="metric-value">—</div></div>
+    </section>
+
+    <section class="chart-panel">
+        <div class="panel-header">
+            <div class="panel-title">PRICE HISTORY</div>
+            <div id="chartMeta" class="panel-meta">NO HISTORY</div>
+        </div>
+
+        <div class="chart">
+            <div class="chart-grid">
+                <svg viewBox="0 0 1000 280" preserveAspectRatio="none">
+                    <path d="M0 40H1000 M0 80H1000 M0 120H1000 M0 160H1000 M0 200H1000 M0 240H1000" stroke="#191c21" stroke-width="1"></path>
+                    <path d="M100 0V280 M200 0V280 M300 0V280 M400 0V280 M500 0V280 M600 0V280 M700 0V280 M800 0V280 M900 0V280" stroke="#15181d" stroke-width="1"></path>
+                </svg>
+            </div>
+
+            <svg id="chartSvg" viewBox="0 0 1000 280" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;display:none">
+                <path id="chartArea" class="chart-area"></path>
+                <path id="chartLine" class="chart-line"></path>
+                <circle id="chartPoint" class="chart-point" r="4"></circle>
+            </svg>
+
+            <div id="chartEmpty" class="chart-empty">NO PRICE HISTORY</div>
+
+            <div class="chart-axis">
+                <span>START</span>
+                <span id="chartAxisMiddle">1H</span>
+                <span>NOW</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="lower-grid">
+        <section class="table-panel">
+            <div class="panel-header">
+                <div class="panel-title">RETAILER PRICES</div>
+                <div id="retailerMeta" class="panel-meta">NO DATA</div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>RETAILER</th><th>PRICE</th><th>STOCK</th><th>LAST CHECKED</th></tr>
+                    </thead>
+                    <tbody id="retailerBody"><tr><td colspan="4">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="info-panel">
+            <div class="panel-header">
+                <div class="panel-title">PRODUCT INFO</div>
+                <div class="panel-meta">NVIDIA ONLY</div>
+            </div>
+
+            <div class="info-body">
+                <div class="spec-row"><div class="spec-label">MODEL</div><div id="infoModel" class="spec-value">—</div></div>
+                <div class="spec-row"><div class="spec-label">VRAM</div><div id="infoVram" class="spec-value">—</div></div>
+                <div class="spec-row"><div class="spec-label">MEMORY</div><div id="infoMemory" class="spec-value">—</div></div>
+                <div class="spec-row"><div class="spec-label">LAUNCH MSRP</div><div id="infoMsrp" class="spec-value">—</div></div>
+                <div class="spec-row"><div class="spec-label">DATA POINTS</div><div id="infoPoints" class="spec-value">0</div></div>
+                <button id="refreshButton" class="refresh-button">REFRESH MARKET DATA</button>
+            </div>
+        </section>
+    </div>
+
+</div>
+</main>
+</div>
+
+<footer class="footer-ticker">
+    <div class="ticker-label">NVIDIA TRACK</div>
+    <div class="ticker-content">
+        <span>50 SERIES</span><strong id="tickerProducts">8 PRODUCTS</strong>
+        <span>MARKET</span><strong id="tickerCurrency">IDR</strong>
+        <span>FEED</span><strong id="tickerFeed">WAITING</strong>
+    </div>
+</footer>
+
+<!-- SETTINGS -->
+<section id="settingsPage" class="settings-page">
+<div class="settings-container">
+
+    <div class="settings-heading">
+        <div>
+            <div class="settings-eyebrow">NVIDIA TRACK / CONFIGURATION</div>
+            <h2 class="settings-title">Settings</h2>
+            <div class="settings-description">Configure market history, data collection, browser sessions and appearance</div>
+        </div>
+        <button id="closeSettings" class="setting-button">CLOSE</button>
+    </div>
+
+    <div class="settings-grid">
+
+        <nav class="settings-nav">
+            <button class="settings-nav-button active" data-settings-tab="collector">DATA COLLECTOR</button>
+            <button class="settings-nav-button" data-settings-tab="history">HISTORY</button>
+            <button class="settings-nav-button" data-settings-tab="add-data">ADD DATA</button>
+            <button class="settings-nav-button" data-settings-tab="theme">THEMES</button>
+        </nav>
+
+        <div>
+
+            <!-- COLLECTOR -->
+            <section id="settings-collector" class="settings-section active">
+                <div class="settings-section-header">
+                    <div class="settings-section-title">CLOUDFLARE COLLECTOR</div>
+                    <div class="settings-section-subtitle">Configure the backend scraper session that fetches Enterkomputer prices.</div>
+                </div>
+
+                <div class="settings-body">
+                    <div class="collector-status">
+                        <div class="collector-status-top">
+                            <div>
+                                <div class="setting-label">COLLECTOR SESSION</div>
+                                <div id="collectorDetail" class="collector-detail">No collector session configured</div>
+                            </div>
+                            <div id="collectorState" class="collector-state">NOT CONFIGURED</div>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Browser profile</div>
+                            <div class="setting-help">Persistent browser profile for cookies and session state</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="browserProfile" class="setting-input" value="enterkomputer" placeholder="Profile name">
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Collector interval</div>
+                            <div class="setting-help">How often the backend re-fetches prices</div>
+                        </div>
+                        <div class="setting-control">
+                            <select id="collectorInterval" class="setting-select">
+                                <option value="60000">1 minute</option>
+                                <option value="300000" selected>5 minutes</option>
+                                <option value="600000">10 minutes</option>
+                                <option value="900000">15 minutes</option>
+                                <option value="1800000">30 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Persistent cookies</div>
+                            <div class="setting-help">Keep browser session data between collector runs</div>
+                        </div>
+                        <div class="setting-control">
+                            <button id="cookieToggle" class="setting-button primary">ENABLED</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Configure collector</div>
+                            <div class="setting-help">Saves the settings above and restarts the backend collector loop</div>
+                        </div>
+                        <div class="setting-control">
+                            <button id="configureCollector" class="setting-button primary">OPEN COLLECTOR</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Clear collector session</div>
+                            <div class="setting-help">Marks the collector as not configured (data collection keeps running on the default interval)</div>
+                        </div>
+                        <div class="setting-control">
+                            <button id="clearCollector" class="setting-button danger">CLEAR SESSION</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- HISTORY -->
+            <section id="settings-history" class="settings-section">
+                <div class="settings-section-header">
+                    <div class="settings-section-title">PRICE HISTORY</div>
+                    <div class="settings-section-subtitle">Inspect historical price points stored by NVIDIA Track</div>
+                </div>
+
+                <div class="settings-body">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Selected product</div>
+                            <div class="setting-help">Current dashboard product</div>
+                        </div>
+                        <div class="setting-control">
+                            <div id="historyProduct" class="badge">NO PRODUCT</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:14px">
+                        <div id="historyList" class="history-list">
+                            <div class="history-row header"><div>TIME</div><div>PRICE</div><div>SOURCE</div><div>TYPE</div></div>
+                            <div class="empty-history">NO HISTORY LOADED</div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button id="reloadHistory" class="setting-button">RELOAD HISTORY</button>
+                        <button id="clearHistory" class="setting-button danger">CLEAR HISTORY</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADD DATA -->
+            <section id="settings-add-data" class="settings-section">
+                <div class="settings-section-header">
+                    <div class="settings-section-title">ADD PRICE DATA</div>
+                    <div class="settings-section-subtitle">Add a historical or manually observed market price</div>
+                </div>
+
+                <div class="settings-body">
+                    <div class="add-data-grid">
+                        <div class="form-field">
+                            <div class="form-label">PRODUCT</div>
+                            <select id="addProduct" class="setting-select" style="width:100%"></select>
+                        </div>
+
+                        <div class="form-field">
+                            <div class="form-label">PRICE / IDR</div>
+                            <input id="addPrice" class="setting-input" style="width:100%" type="number" min="0" step="1" placeholder="8299000">
+                        </div>
+
+                        <div class="form-field">
+                            <div class="form-label">RETAILER</div>
+                            <input id="addRetailer" class="setting-input" style="width:100%" value="Manual" placeholder="Enterkomputer">
+                        </div>
+
+                        <div class="form-field">
+                            <div class="form-label">STOCK</div>
+                            <select id="addStock" class="setting-select" style="width:100%">
+                                <option value="IN STOCK">IN STOCK</option>
+                                <option value="AVAILABLE">AVAILABLE</option>
+                                <option value="OUT OF STOCK">OUT OF STOCK</option>
+                                <option value="UNKNOWN">UNKNOWN</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field full">
+                            <div class="form-label">NOTE</div>
+                            <input id="addNote" class="setting-input" style="width:100%" placeholder="Optional note">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button id="clearAddData" class="setting-button">CLEAR</button>
+                        <button id="submitAddData" class="setting-button primary">ADD DATA POINT</button>
+                    </div>
+
+                    <div id="addDataStatus" class="settings-footer"></div>
+                </div>
+            </section>
+
+            <!-- THEME -->
+            <section id="settings-theme" class="settings-section">
+                <div class="settings-section-header">
+                    <div class="settings-section-title">APPEARANCE</div>
+                    <div class="settings-section-subtitle">Customize the NVIDIA Track interface</div>
+                </div>
+
+                <div class="settings-body">
+                    <div class="theme-grid">
+                        <button class="theme-card active" data-theme="terminal">
+                            <div class="theme-preview" style="background:linear-gradient(135deg,#08090b 0%,#0d0f12 100%)"></div>
+                            <div class="theme-name">TERMINAL</div>
+                        </button>
+                        <button class="theme-card" data-theme="midnight">
+                            <div class="theme-preview" style="background:linear-gradient(135deg,#070914 0%,#10152b 100%)"></div>
+                            <div class="theme-name">MIDNIGHT</div>
+                        </button>
+                        <button class="theme-card" data-theme="ice">
+                            <div class="theme-preview" style="background:linear-gradient(135deg,#071012 0%,#102327 100%)"></div>
+                            <div class="theme-name">ICE</div>
+                        </button>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Accent color</div>
+                            <div class="setting-help">Main interface highlight color</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="color-row">
+                                <input id="accentColor" class="color-input" type="color" value="#00ff66">
+                                <input id="accentHex" class="setting-input" style="width:150px" value="#00ff66">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Wallpaper</div>
+                            <div class="setting-help">Optional image displayed behind the interface</div>
+                        </div>
+                        <div class="setting-control">
+                            <select id="wallpaperMode" class="setting-select">
+                                <option value="none">NONE</option>
+                                <option value="grid">GRID</option>
+                                <option value="custom">CUSTOM URL</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Wallpaper URL</div>
+                            <div class="setting-help">Used when CUSTOM URL is selected</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="wallpaperUrl" class="setting-input" placeholder="https://...">
+                        </div>
+                    </div>
+
+                    <div id="wallpaperPreview" class="wallpaper-preview"></div>
+
+                    <div class="form-actions">
+                        <button id="resetTheme" class="setting-button">RESET APPEARANCE</button>
+                        <button id="saveTheme" class="setting-button primary">APPLY</button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <div class="settings-footer">NVIDIA Track configuration is stored locally unless explicitly sent to the backend</div>
+
+</div>
+</section>
+
+</div>
+
+<script>
+const state = {
+    products: [],
+    prices: [],
+    selected: null,
+    currency: "IDR",
+    timeframe: "1H",
+    fx: { IDR: 15850, USD: 1, EUR: 0.92, JPY: 149.2 }
+}
+
+const settingsState = {
+    theme: localStorage.getItem("nvidia-track-theme") || "terminal",
+    accent: localStorage.getItem("nvidia-track-accent") || "#00ff66",
+    wallpaperMode: localStorage.getItem("nvidia-track-wallpaper-mode") || "none",
+    wallpaperUrl: localStorage.getItem("nvidia-track-wallpaper-url") || "",
+    collectorProfile: localStorage.getItem("nvidia-track-collector-profile") || "enterkomputer",
+    collectorInterval: localStorage.getItem("nvidia-track-collector-interval") || "300000",
+    persistentCookies: localStorage.getItem("nvidia-track-persistent-cookies") !== "false"
+}
+
+const $ = id => document.getElementById(id)
+
+// ---------- formatting ----------
+
+function formatMsrp(usd) {
+    if (usd === null || usd === undefined || !Number.isFinite(Number(usd))) return "NO DATA"
+    const value = Number(usd) * state.fx[state.currency]
+
+    if (state.currency === "IDR") return "Rp " + Math.round(value).toLocaleString("id-ID")
+    if (state.currency === "USD") return "$" + value.toFixed(2)
+    if (state.currency === "EUR") return "€" + value.toFixed(2)
+    if (state.currency === "JPY") return "¥" + Math.round(value).toLocaleString("ja-JP")
+    return String(value)
+}
+
+function formatPrice(idr) {
+    if (idr === null || idr === undefined || !Number.isFinite(Number(idr))) return "NO DATA"
+    const value = Number(idr)
+
+    if (state.currency === "IDR") return "Rp " + Math.round(value).toLocaleString("id-ID")
+    if (state.currency === "USD") return "$" + (value / state.fx.IDR).toFixed(2)
+    if (state.currency === "EUR") return "€" + ((value / state.fx.IDR) * state.fx.EUR).toFixed(2)
+    if (state.currency === "JPY") return "¥" + Math.round((value / state.fx.IDR) * state.fx.JPY).toLocaleString("ja-JP")
+    return "Rp " + Math.round(value).toLocaleString("id-ID")
+}
+
+function formatTime(value) {
+    if (!value) return "—"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+}
+
+function normalize(value) {
+    return String(value || "").toLowerCase().replace(/\s+/g, " ").trim()
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;")
+}
+
+// ---------- product list / dashboard ----------
+
+function findSelectedProduct() {
+    return state.products.find(product => product.id === state.selected) || null
+}
+
+function staticPriceForProduct(productId) {
+    const row = state.prices.find(item => item.productId === productId)
+    return row ? Number(row.price) : null
+}
+
+function renderProductList() {
+    const query = normalize($("search").value)
+
+    const filtered = state.products.filter(product => {
+        if (!query) return true
+        return normalize(product.name).includes(query) ||
+            normalize(product.memory).includes(query) ||
+            normalize(product.vram).includes(query)
+    })
+
+    $("productCount").textContent = `${state.products.length} PRODUCTS`
+
+    if (!filtered.length) {
+        $("productList").innerHTML = `<div class="no-match">NO NVIDIA GPU MATCH FOUND</div>`
+        return
+    }
+
+    $("productList").innerHTML = filtered.map(product => `
+        <button class="product-item ${product.id === state.selected ? "active" : ""}" data-product-id="${escapeHtml(product.id)}">
+            <div class="product-name">${escapeHtml(product.name)}</div>
+            <div class="product-price">${formatPrice(staticPriceForProduct(product.id))}</div>
+        </button>
+    `).join("")
+
+    document.querySelectorAll(".product-item").forEach(button => {
+        button.addEventListener("click", () => {
+            state.selected = button.dataset.productId
+            renderProductList()
+            renderProduct()
+            populateAddDataProduct()
+            updateHistoryProductLabel()
+        })
+    })
+}
+
+function renderProduct() {
+    const product = findSelectedProduct()
+
+    if (!product) {
+        $("productName").textContent = "NO DATA"
+        $("productSubtitle").textContent = "No product selected"
+        return
+    }
+
+    const priceRows = state.prices.filter(row => row.productId === product.id)
+    const validPrices = priceRows.map(row => Number(row.price)).filter(price => Number.isFinite(price) && price > 0)
+    const current = validPrices.length ? Math.min(...validPrices) : null
+
+    $("productName").textContent = product.name
+    $("productSubtitle").textContent = `${product.vram} / ${product.memory} / NVIDIA GEFORCE`
+    $("metricCurrent").textContent = current === null ? "NO DATA" : formatPrice(current)
+    $("metricLowest").textContent = current === null ? "NO DATA" : formatPrice(current)
+    $("metricMsrp").textContent = formatMsrp(product.msrp)
+    $("metric24h").textContent = "—"
+    $("metric7d").textContent = "—"
+    $("metric30d").textContent = "—"
+    $("metricVram").textContent = product.vram
+
+    $("infoModel").textContent = product.name
+    $("infoVram").textContent = product.vram
+    $("infoMemory").textContent = product.memory
+    $("infoMsrp").textContent = formatMsrp(product.msrp)
+    $("retailerMeta").textContent = `${priceRows.length} RETAILERS`
+
+    if (!priceRows.length) {
+        $("retailerBody").innerHTML = `<tr><td colspan="4">NO DATA</td></tr>`
+    } else {
+        $("retailerBody").innerHTML = priceRows.map(row => {
+            const price = Number(row.price)
+            const hasPrice = Number.isFinite(price) && price > 0
+            const stock = String(row.stock || "NO DATA").toUpperCase()
+
+            let stockClass = ""
+            if (stock === "IN STOCK" || stock === "AVAILABLE") stockClass = "ok"
+            if (stock === "OUT OF STOCK") stockClass = "out"
+
+            return `
+                <tr>
+                    <td class="retailer">${escapeHtml(row.retailer || "UNKNOWN")}</td>
+                    <td class="price">${hasPrice ? formatPrice(price) : "NO DATA"}</td>
+                    <td class="stock ${stockClass}">${escapeHtml(stock)}</td>
+                    <td>${formatTime(row.checkedAt)}</td>
+                </tr>
+            `
+        }).join("")
+    }
+
+    loadHistory(product.id)
+}
+
+// ---------- chart / history ----------
+// NOTE: /api/history/:id returns { productId, history: [...] }, not a bare array.
+
+async function loadHistory(productId) {
+    $("chartEmpty").style.display = "flex"
+    $("chartSvg").style.display = "none"
+    $("chartMeta").textContent = "NO HISTORY"
+
+    try {
+        const response = await fetch(`/api/history/${encodeURIComponent(productId)}`)
+        if (!response.ok) throw new Error("History request failed")
+
+        const data = await response.json()
+        const history = Array.isArray(data.history) ? data.history : []
+
+        renderHistorySettings(history)
+        $("infoPoints").textContent = String(history.length)
+
+        const values = history.map(point => Number(point.price)).filter(price => Number.isFinite(price) && price > 0)
+        if (values.length < 2) return
+
+        drawChart(values)
+        $("chartEmpty").style.display = "none"
+        $("chartSvg").style.display = "block"
+        $("chartMeta").textContent = `${values.length} DATA POINTS`
+    } catch {
+        $("chartEmpty").style.display = "flex"
+        $("chartSvg").style.display = "none"
+        renderHistorySettings([])
+    }
+}
+
+function drawChart(values) {
+    const width = 1000, height = 280, padX = 18, padY = 25
+
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    const range = max - min || 1
+
+    const points = values.map((value, index) => {
+        const x = padX + (index / (values.length - 1)) * (width - padX * 2)
+        const y = height - padY - ((value - min) / range) * (height - padY * 2)
+        return [x, y]
+    })
+
+    const line = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point[0]} ${point[1]}`).join(" ")
+    const area = `${line} L ${points[points.length - 1][0]} ${height - padY} L ${points[0][0]} ${height - padY} Z`
+
+    $("chartLine").setAttribute("d", line)
+    $("chartArea").setAttribute("d", area)
+
+    const last = points[points.length - 1]
+    $("chartPoint").setAttribute("cx", last[0])
+    $("chartPoint").setAttribute("cy", last[1])
+    $("chartAxisMiddle").textContent = state.timeframe
+}
+
+// ---------- data loading ----------
+
+async function loadData() {
+    const started = performance.now()
+
+    try {
+        const [productsResponse, pricesResponse] = await Promise.all([
+            fetch("/api/products"),
+            fetch("/api/prices")
+        ])
+
+        if (!productsResponse.ok || !pricesResponse.ok) throw new Error("API request failed")
+
+        state.products = await productsResponse.json()
+        state.prices = await pricesResponse.json()
+
+        if (!Array.isArray(state.products) || !state.products.length) {
+            $("dataStatus").textContent = "NO DATA"
+            return
+        }
+
+        if (!state.selected || !state.products.some(product => product.id === state.selected)) {
+            const defaultProduct = state.products.find(product => product.id === "rtx-5060")
+            state.selected = defaultProduct ? defaultProduct.id : state.products[0].id
+        }
+
+        renderProductList()
+        renderProduct()
+        populateAddDataProduct()
+        updateHistoryProductLabel()
+
+        $("latency").textContent = `${Math.round(performance.now() - started)} ms`
+        $("dataStatus").textContent = "CATALOG ONLINE"
+        $("marketPulse").textContent = "LIVE"
+        $("tickerProducts").textContent = `${state.products.length} PRODUCTS`
+        $("tickerCurrency").textContent = state.currency
+        $("tickerFeed").textContent = state.prices.length ? "ACTIVE" : "WAITING"
+    } catch {
+        $("dataStatus").textContent = "OFFLINE"
+        $("marketPulse").textContent = "ERROR"
+        $("tickerFeed").textContent = "ERROR"
+    }
+}
+
+async function refreshData() {
+    const button = $("refreshButton")
+    button.disabled = true
+    button.textContent = "REFRESHING..."
+
+    try {
+        await fetch("/api/refresh", { method: "POST", headers: { "Content-Type": "application/json" } })
+    } catch {}
+
+    await loadData()
+
+    button.disabled = false
+    button.textContent = "REFRESH MARKET DATA"
+}
+
+// ---------- settings: shell ----------
+
+function openSettings() {
+    $("settingsPage").classList.add("open")
+    $("settingsButton").classList.add("active")
+
+    populateAddDataProduct()
+    updateHistoryProductLabel()
+    loadSettingsIntoUI()
+    loadCollectorStatus()
+}
+
+function closeSettings() {
+    $("settingsPage").classList.remove("open")
+    $("settingsButton").classList.remove("active")
+}
+
+function switchSettingsTab(tab) {
+    document.querySelectorAll(".settings-nav-button").forEach(button => {
+        button.classList.toggle("active", button.dataset.settingsTab === tab)
+    })
+
+    document.querySelectorAll(".settings-section").forEach(section => {
+        section.classList.toggle("active", section.id === `settings-${tab}`)
+    })
+
+    if (tab === "history") loadSettingsHistory()
+}
+
+function populateAddDataProduct() {
+    const select = $("addProduct")
+    if (!select) return
+
+    select.innerHTML = state.products.map(product => `
+        <option value="${escapeHtml(product.id)}" ${product.id === state.selected ? "selected" : ""}>
+            ${escapeHtml(product.name)}
+        </option>
+    `).join("")
+}
+
+function updateHistoryProductLabel() {
+    const product = findSelectedProduct()
+    $("historyProduct").textContent = product ? product.name : "NO PRODUCT"
+}
+
+// ---------- settings: history tab ----------
+
+async function loadSettingsHistory() {
+    if (!state.selected) return
+
+    try {
+        const response = await fetch(`/api/history/${encodeURIComponent(state.selected)}`)
+        if (!response.ok) throw new Error()
+
+        const data = await response.json()
+        renderHistorySettings(Array.isArray(data.history) ? data.history : [])
+    } catch {
+        renderHistorySettings([])
+    }
+}
+
+function renderHistorySettings(history) {
+    const container = $("historyList")
+    const header = `<div class="history-row header"><div>TIME</div><div>PRICE</div><div>SOURCE</div><div>TYPE</div></div>`
+
+    if (!Array.isArray(history) || !history.length) {
+        container.innerHTML = header + `<div class="empty-history">NO HISTORY LOADED</div>`
+        return
+    }
+
+    container.innerHTML = header + history.slice().reverse().map(point => `
+        <div class="history-row">
+            <div>${escapeHtml(formatTime(point.timestamp))}</div>
+            <div class="history-price">${formatPrice(Number(point.price))}</div>
+            <div>${escapeHtml(point.source || "UNKNOWN")}</div>
+            <div>${escapeHtml(point.type || "AUTO")}</div>
+        </div>
+    `).join("")
+}
+
+async function clearHistory() {
+    if (!state.selected) return
+
+    try {
+        const response = await fetch(`/api/history/${encodeURIComponent(state.selected)}`, { method: "DELETE" })
+        if (!response.ok) throw new Error()
+
+        await loadData()
+        await loadSettingsHistory()
+    } catch {
+        $("addDataStatus").textContent = "COULD NOT CLEAR HISTORY"
+    }
+}
+
+// ---------- settings: add data tab ----------
+
+async function addDataPoint() {
+    const productId = $("addProduct").value
+    const price = Number($("addPrice").value)
+    const retailer = $("addRetailer").value.trim() || "Manual"
+    const stock = $("addStock").value
+    const status = $("addDataStatus")
+
+    if (!productId) { status.textContent = "SELECT A PRODUCT"; return }
+    if (!Number.isFinite(price) || price <= 0) { status.textContent = "ENTER A VALID PRICE"; return }
+
+    status.textContent = "ADDING..."
+
+    try {
+        const response = await fetch("/api/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ product_id: productId, price, retailer, stock })
+        })
+
+        if (!response.ok) throw new Error()
+
+        status.textContent = "DATA POINT ADDED"
+        $("addPrice").value = ""
+        $("addNote").value = ""
+
+        await loadData()
+        await loadSettingsHistory()
+    } catch {
+        status.textContent = "COULD NOT ADD DATA POINT"
+    }
+}
+
+// ---------- settings: collector tab ----------
+
+async function loadCollectorStatus() {
+    try {
+        const response = await fetch("/api/configure")
+        if (!response.ok) throw new Error()
+
+        const collector = await response.json()
+
+        $("browserProfile").value = collector.profile || settingsState.collectorProfile
+        $("collectorInterval").value = String(collector.intervalMs || settingsState.collectorInterval)
+
+        $("collectorState").textContent = collector.status || "NOT CONFIGURED"
+        $("collectorState").className = "collector-state" + (collector.configured ? " ready" : "")
+        $("collectorDetail").textContent = collector.lastMessage || "No collector session configured"
+    } catch {
+        $("collectorState").textContent = "BACKEND OFFLINE"
+        $("collectorState").className = "collector-state error"
+        $("collectorDetail").textContent = "Could not reach /api/configure"
+    }
+}
+
+async function configureCollector() {
+    const profile = $("browserProfile").value.trim() || "enterkomputer"
+    const interval = Number($("collectorInterval").value)
+    const persistentCookies = settingsState.persistentCookies
+
+    settingsState.collectorProfile = profile
+    settingsState.collectorInterval = String(interval)
+    localStorage.setItem("nvidia-track-collector-profile", profile)
+    localStorage.setItem("nvidia-track-collector-interval", String(interval))
+
+    $("collectorState").textContent = "STARTING..."
+    $("collectorState").className = "collector-state"
+    $("collectorDetail").textContent = "Requesting collector session from backend..."
+
+    try {
+        const response = await fetch("/api/configure", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ profile, interval, persistentCookies })
+        })
+
+        if (!response.ok) throw new Error()
+
+        const result = await response.json()
+
+        $("collectorState").textContent = "READY"
+        $("collectorState").className = "collector-state ready"
+        $("collectorDetail").textContent = result.message || "Collector session started"
+    } catch {
+        $("collectorState").textContent = "BACKEND OFFLINE"
+        $("collectorState").className = "collector-state error"
+        $("collectorDetail").textContent = "Could not reach /api/configure"
+    }
+}
+
+async function clearCollector() {
+    try {
+        const response = await fetch("/api/configure", { method: "DELETE" })
+        if (!response.ok) throw new Error()
+
+        $("collectorState").textContent = "NOT CONFIGURED"
+        $("collectorState").className = "collector-state"
+        $("collectorDetail").textContent = "Collector session cleared"
+    } catch {
+        $("collectorDetail").textContent = "Could not reach /api/configure"
+    }
+}
+
+// ---------- settings: appearance tab ----------
+
+function loadSettingsIntoUI() {
+    $("browserProfile").value = settingsState.collectorProfile
+    $("collectorInterval").value = settingsState.collectorInterval
+
+    $("cookieToggle").textContent = settingsState.persistentCookies ? "ENABLED" : "DISABLED"
+    $("cookieToggle").classList.toggle("primary", settingsState.persistentCookies)
+
+    $("accentColor").value = settingsState.accent
+    $("accentHex").value = settingsState.accent
+    $("wallpaperMode").value = settingsState.wallpaperMode
+    $("wallpaperUrl").value = settingsState.wallpaperUrl
+
+    applyAppearance()
+}
+
+function applyAppearance() {
+    const root = document.documentElement
+    root.style.setProperty("--accent", settingsState.accent)
+
+    let wallpaper = "none"
+
+    if (settingsState.wallpaperMode === "grid") {
+        wallpaper = `linear-gradient(rgba(0,255,102,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,102,.035) 1px, transparent 1px)`
+        document.body.style.backgroundSize = "40px 40px"
+    } else if (settingsState.wallpaperMode === "custom" && settingsState.wallpaperUrl) {
+        wallpaper = `url("${settingsState.wallpaperUrl}")`
+        document.body.style.backgroundSize = "cover"
+    } else {
+        document.body.style.backgroundSize = "auto"
+    }
+
+    root.style.setProperty("--wallpaper", wallpaper)
+
+    document.querySelectorAll(".theme-card").forEach(card => {
+        card.classList.toggle("active", card.dataset.theme === settingsState.theme)
+    })
+}
+
+function applyThemePreset(theme) {
+    settingsState.theme = theme
+
+    if (theme === "terminal") settingsState.accent = "#00ff66"
+    if (theme === "midnight") settingsState.accent = "#7c8cff"
+    if (theme === "ice") settingsState.accent = "#00e5ff"
+
+    localStorage.setItem("nvidia-track-theme", settingsState.theme)
+    localStorage.setItem("nvidia-track-accent", settingsState.accent)
+
+    $("accentColor").value = settingsState.accent
+    $("accentHex").value = settingsState.accent
+
+    applyAppearance()
+}
+
+function saveAppearance() {
+    const color = $("accentHex").value.trim()
+    if (/^#[0-9a-fA-F]{6}$/.test(color)) settingsState.accent = color
+
+    settingsState.wallpaperMode = $("wallpaperMode").value
+    settingsState.wallpaperUrl = $("wallpaperUrl").value.trim()
+
+    localStorage.setItem("nvidia-track-accent", settingsState.accent)
+    localStorage.setItem("nvidia-track-wallpaper-mode", settingsState.wallpaperMode)
+    localStorage.setItem("nvidia-track-wallpaper-url", settingsState.wallpaperUrl)
+
+    applyAppearance()
+}
+
+function resetAppearance() {
+    settingsState.theme = "terminal"
+    settingsState.accent = "#00ff66"
+    settingsState.wallpaperMode = "none"
+    settingsState.wallpaperUrl = ""
+
+    localStorage.setItem("nvidia-track-theme", "terminal")
+    localStorage.setItem("nvidia-track-accent", "#00ff66")
+    localStorage.setItem("nvidia-track-wallpaper-mode", "none")
+    localStorage.setItem("nvidia-track-wallpaper-url", "")
+
+    loadSettingsIntoUI()
+}
+
+// ---------- event wiring ----------
+
+$("settingsButton").addEventListener("click", () => {
+    $("settingsPage").classList.contains("open") ? closeSettings() : openSettings()
+})
+
+$("closeSettings").addEventListener("click", closeSettings)
+
+document.querySelectorAll(".settings-nav-button").forEach(button => {
+    button.addEventListener("click", () => switchSettingsTab(button.dataset.settingsTab))
+})
+
+$("configureCollector").addEventListener("click", configureCollector)
+$("clearCollector").addEventListener("click", clearCollector)
+
+$("cookieToggle").addEventListener("click", () => {
+    settingsState.persistentCookies = !settingsState.persistentCookies
+    localStorage.setItem("nvidia-track-persistent-cookies", String(settingsState.persistentCookies))
+
+    $("cookieToggle").textContent = settingsState.persistentCookies ? "ENABLED" : "DISABLED"
+    $("cookieToggle").classList.toggle("primary", settingsState.persistentCookies)
+})
+
+$("submitAddData").addEventListener("click", addDataPoint)
+
+$("clearAddData").addEventListener("click", () => {
+    $("addPrice").value = ""
+    $("addNote").value = ""
+    $("addDataStatus").textContent = ""
+})
+
+$("reloadHistory").addEventListener("click", loadSettingsHistory)
+$("clearHistory").addEventListener("click", clearHistory)
+
+document.querySelectorAll(".theme-card").forEach(card => {
+    card.addEventListener("click", () => applyThemePreset(card.dataset.theme))
+})
+
+$("accentColor").addEventListener("input", () => {
+    $("accentHex").value = $("accentColor").value
+    settingsState.accent = $("accentColor").value
+    applyAppearance()
+})
+
+$("accentHex").addEventListener("change", () => {
+    const value = $("accentHex").value.trim()
+    if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+        settingsState.accent = value
+        $("accentColor").value = value
+        applyAppearance()
+    }
+})
+
+$("saveTheme").addEventListener("click", saveAppearance)
+$("resetTheme").addEventListener("click", resetAppearance)
+
+$("wallpaperMode").addEventListener("change", () => {
+    settingsState.wallpaperMode = $("wallpaperMode").value
+    applyAppearance()
+})
+
+$("wallpaperUrl").addEventListener("input", () => {
+    settingsState.wallpaperUrl = $("wallpaperUrl").value
+    if (settingsState.wallpaperMode === "custom") applyAppearance()
+})
+
+$("search").addEventListener("input", renderProductList)
+$("refreshButton").addEventListener("click", refreshData)
+
+document.querySelectorAll("[data-currency]").forEach(button => {
+    button.addEventListener("click", () => {
+        state.currency = button.dataset.currency
+        document.querySelectorAll("[data-currency]").forEach(item => item.classList.toggle("active", item === button))
+        $("tickerCurrency").textContent = state.currency
+        renderProductList()
+        renderProduct()
+    })
+})
+
+document.querySelectorAll("[data-timeframe]").forEach(button => {
+    button.addEventListener("click", () => {
+        state.timeframe = button.dataset.timeframe
+        document.querySelectorAll("[data-timeframe]").forEach(item => item.classList.toggle("active", item === button))
+        loadHistory(state.selected)
+    })
+})
+
+document.querySelectorAll(".compare-row .side-button").forEach(button => {
+    button.addEventListener("click", () => {
+        document.querySelectorAll(".compare-row .side-button").forEach(item => item.classList.remove("active"))
+        button.classList.add("active")
+    })
+})
+
+document.addEventListener("keydown", event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault()
+        $("search").focus()
+        $("search").select()
+    }
+
+    if (event.key === "Escape" && $("settingsPage").classList.contains("open")) closeSettings()
+})
+
+function updateClock() {
+    $("clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+}
+
+updateClock()
+setInterval(updateClock, 1000)
+
+loadSettingsIntoUI()
+loadData()
+setInterval(loadData, 300000)
+</script>
+
+</div>
+</body>
+</html>
